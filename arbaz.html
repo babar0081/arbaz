@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>Slide Editor</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Titillium Web", sans-serif;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        width: 250px;
+        background: #333;
+        padding: 20px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar button {
+        background: #ff6f61;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .sidebar button:hover {
+        background: #ff5a47;
+      }
+
+      /* Workspace */
+      .workspace {
+        flex: 1;
+        background: #f9f9f9;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      /* Slide */
+      .slide {
+        width: 500px;
+        height: 500px;
+        background-size: cover;
+        background-position: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        cursor: grab;
+        display: none; /* Initially hide slides */
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+      }
+
+      /* Editable Text */
+      .editable {
+        text-transform: uppercase;
+        color: white;
+        font-weight: 800;
+        font-size: 40px;
+        margin: 0;
+        cursor: move;
+        position: absolute;
+        user-select: none;
+        transition: all 0.3s ease;
+      }
+
+      /* Modal */
+      .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        width: 300px;
+        z-index: 11;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .template-button {
+        width: 100%;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        justify-content: flex-start;
+        cursor: pointer;
+        padding: 12px;
+        border-radius: 8px;
+        transition: background 0.3s ease, transform 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        font: bold;
+        margin-bottom: 4px;
+      }
+
+      .template-button:hover {
+        background-color: #f7f7f7;
+        transform: translateX(5px);
+      }
+
+      .template-button img {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .template-button img:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .template-button span {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        transition: color 0.3s ease;
+      }
+
+      .template-button:hover span {
+        color: #ff6f61;
+      }
+
+      .template-button:active {
+        transform: translateX(1px);
+      }
+
+      .modal h3 {
+        margin: 0 0 20px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <button id="newSlide">New Slide</button>
+    </div>
+    <div class="workspace" id="workspace"></div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="modal">
+      <h3>Select a Template</h3>
+      <button class="template-button" data-template="template1">
+        <img
+          src="https://media-public.canva.com/43xhE/MAEnjk43xhE/1/s2.jpg"
+          alt="Template 1"
+        />
+        Template 1
+      </button>
+      <button class="template-button" data-template="template2">
+        <img
+          src="https://imgs.search.brave.com/4Z8UwleTgBUF3c--TSyt2qMWS2tCxfgem7D6IREvt48/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/aS10ZWNobm9sb2d5/LW1pY3JvY2hpcC1i/YWNrZ3JvdW5kLWRp/Z2l0YWwtdHJhbnNm/b3JtYXRpb24tY29u/Y2VwdF81Mzg3Ni0x/MjQ2NjkuanBnP3Nl/bXQ9YWlzX2h5YnJp/ZA"
+          alt="Template 2"
+        />
+        Template 2
+      </button>
+    </div>
+
+    <script>
+      let selectedElement = null;
+      let selectedSlide = null;
+      let slideCount = 0;
+      const newSlideButton = document.getElementById("newSlide");
+      const workspace = document.getElementById("workspace");
+      const modal = document.getElementById("modal");
+      const overlay = document.getElementById("overlay");
+      const sidebar = document.querySelector(".sidebar");
+
+      newSlideButton.addEventListener("click", () => {
+        modal.style.display = "block";
+        overlay.style.display = "block";
+        setTimeout(() => {
+          overlay.style.opacity = 1;
+          modal.style.opacity = 1;
+        }, 50); // Ensure opacity transition starts after display
+      });
+
+      document.querySelectorAll(".template-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          slideCount++;
+          const newSlide = document.createElement("div");
+          newSlide.classList.add("slide");
+
+          if (button.dataset.template === "template1") {
+            newSlide.style.backgroundImage =
+              "url('https://media-public.canva.com/43xhE/MAEnjk43xhE/1/s2.jpg')";
+          } else if (button.dataset.template === "template2") {
+            newSlide.style.backgroundImage =
+              "url('https://imgs.search.brave.com/4Z8UwleTgBUF3c--TSyt2qMWS2tCxfgem7D6IREvt48/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/aS10ZWNobm9sb2d5/LW1pY3JvY2hpcC1i/YWNrZ3JvdW5kLWRp/Z2l0YWwtdHJhbnNm/b3JtYXRpb24tY29u/Y2VwdF81Mzg3Ni0x/MjQ2NjkuanBnP3Nl/bXQ9YWlzX2h5YnJp/ZA')";
+          }
+
+          workspace.appendChild(newSlide);
+          addEditableText(newSlide, "Metaverse", 50, 50);
+          addEditableText(newSlide, "Expansion", 50, 120);
+          enableSlideMovement(newSlide);
+          enableTextMovement(newSlide);
+          addSlideButton(slideCount, newSlide);
+
+          // Automatically navigate to the newly created slide
+          navigateToSlide(slideCount);
+
+          setTimeout(() => {
+            modal.style.display = "none";
+            overlay.style.display = "none";
+          }, 300); // Wait for the animation before hiding
+        });
+      });
+
+      function addEditableText(parent, text, x, y) {
+        const element = document.createElement("h1");
+        element.classList.add("editable");
+        element.contentEditable = true;
+        element.textContent = text;
+        element.style.left = `${x}px`;
+        element.style.top = `${y}px`;
+        parent.appendChild(element);
+      }
+
+      function enableSlideMovement(slide) {
+        slide.addEventListener("mousedown", (e) => {
+          if (e.target.classList.contains("editable")) return;
+          selectedSlide = slide;
+          let rect = slide.getBoundingClientRect();
+          let offsetX = e.clientX - rect.left;
+          let offsetY = e.clientY - rect.top;
+          function moveSlide(e) {
+            if (selectedSlide) {
+              selectedSlide.style.left = `${e.clientX - offsetX}px`;
+              selectedSlide.style.top = `${e.clientY - offsetY}px`;
+            }
+          }
+          function stopSlide() {
+            selectedSlide = null;
+            document.removeEventListener("mousemove", moveSlide);
+            document.removeEventListener("mouseup", stopSlide);
+          }
+          document.addEventListener("mousemove", moveSlide);
+          document.addEventListener("mouseup", stopSlide);
+        });
+      }
+
+      function enableTextMovement(slide) {
+        slide.querySelectorAll(".editable").forEach((textElement) => {
+          textElement.addEventListener("mousedown", (e) => {
+            selectedElement = textElement;
+            let rect = textElement.getBoundingClientRect();
+            let offsetX = e.clientX - rect.left;
+            let offsetY = e.clientY - rect.top;
+            function moveText(e) {
+              if (selectedElement) {
+                selectedElement.style.left = `${e.clientX - offsetX}px`;
+                selectedElement.style.top = `${e.clientY - offsetY}px`;
+              }
+            }
+            function stopText() {
+              selectedElement = null;
+              document.removeEventListener("mousemove", moveText);
+              document.removeEventListener("mouseup", stopText);
+            }
+            document.addEventListener("mousemove", moveText);
+            document.addEventListener("mouseup", stopText);
+          });
+        });
+      }
+
+      function addSlideButton(count, slide) {
+        const slideButton = document.createElement("button");
+        slideButton.textContent = `Slide ${count}`;
+        sidebar.appendChild(slideButton);
+        slideButton.addEventListener("click", () => {
+          // Hide all slides
+          const allSlides = document.querySelectorAll(".slide");
+          allSlides.forEach((s) => (s.style.display = "none"));
+
+          // Show the clicked slide
+          slide.style.display = "block";
+          setTimeout(() => {
+            slide.style.opacity = 1;
+          }, 50);
+        });
+      }
+
+      function navigateToSlide(slideNumber) {
+        const allSlides = document.querySelectorAll(".slide");
+        allSlides.forEach((slide, index) => {
+          if (index === slideNumber - 1) {
+            slide.style.display = "block";
+            setTimeout(() => {
+              slide.style.opacity = 1;
+            }, 50);
+          } else {
+            slide.style.display = "none";
+            slide.style.opacity = 0;
+          }
+        });
+      }
+
+      overlay.addEventListener("click", () => {
+        modal.style.display = "none";
+        overlay.style.display = "none";
+      });
+    </script>
+  </body>
+</html>

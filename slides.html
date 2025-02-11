@@ -1,0 +1,838 @@
+  <!DOCTYPE html>
+  <html lang="en">
+
+  <head>
+    <!-- Meta and Style Links -->
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Drag and Drop Slides Editor</title>
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="vendor/aos/aos.css" rel="stylesheet">
+    <link href="vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+    <link href="vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <script src="js/html2canvas.min.js"></script>
+    <style>
+      /* Styles for your editor and components */
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        height: 100vh;
+        margin: 0;
+      }
+
+      .editor {
+        background: #fff;
+        width: 1080px;
+        height: 720px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+      }
+
+      .toolbar button {
+        padding: 10px;
+        cursor: pointer;
+      }
+
+      .component {
+        padding: 10px;
+        margin-bottom: 10px;
+        cursor: move;
+        position: absolute;
+        resize: both;
+        overflow: hidden;
+      }
+
+      .component.selected {
+        border: 0px solid #007bff;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .btnme.active {
+        background-color: #007BFF;
+        color: #fff;
+      }
+
+      .btnme {
+        color: darkgreen;
+        width: 100%;
+        border: 2px solid;
+        border-color: black;
+        border-radius: 7%;
+        margin: 5px;
+        font-weight: 600;
+      }
+
+      .post-container {
+        position: relative;
+        min-height: 100%;
+      }
+
+      .component {
+        position: absolute;
+        cursor: move;
+        user-select: none;
+        background: white;
+        padding: 10px;
+        min-width: 100px;
+        min-height: 50px;
+      }
+
+      .resizable {
+        resize: both;
+        overflow: auto;
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+
+  <body class="starter-page-page">
+    <!-- Main Content -->
+    <!-- Header -->
+    <header id="header" class="header d-flex align-items-center sticky-top " style="display: none !important;">
+      <div class="container-fluid position-relative d-flex align-items-center justify-content-between">
+      </div>
+      <br>
+    </header>
+    <main class="main">
+      <div class="container-fluid" id="{{ videoid }}">
+
+        <div class="row">
+          <div class="col-md-1">
+            <aside class="sidebar">
+              <p>Maki Ai {{ videoid }}</p>
+
+              <button class="btnme" onclick="addHeading()">H</button>
+              <button class="btnme" onclick="addParagraph()">P</button>
+              <input class="btnme" type="file" id="image-uploadAvatar" accept="image/*" style="display: none;"
+                onchange="handleImageUploadAvatar(event)">
+              <input class="btnme" type="file" id="image-upload" accept="image/*" style="display: none;"
+                onchange="handleImageUpload(event)">
+              <button class="btnme" onclick="toggleBold()">Bold</button>
+              <button class="btnme" onclick="toggleItalic()">Italic</button>
+              <button class="btnme" onclick="toggleUnderline()">Underline</button>
+              <button class="btnme" onclick="bringForward()">Forward</button>
+              <button class="btnme" onclick="sendBackward()">Backward</button>
+              <button class="btnme" onclick="deleteSelected()">Delete </button>
+              <input type="color" id="element-bgcolor">
+              <input type="color" id="element-textcolor">
+              <input type="number" style="width: 80px;" id="element-textsize" placeholder="T Size">
+              <button class="btnme" onclick="saveAllImages2()">Save</button>
+              <button class="btnme" id="openGallery">Gallery</button>
+              <button class="btnme" id="openGalleryAvatar">Avatar</button>
+              <button class="tab-button btnme" class="tab-button" data-target="tab1">Slide 1</button>
+              <button class="btnme" id="add-tab-button">New Slide</button>
+              <!-- Modal Overlay -->
+              <div class="overlay" id="overlay" style="display: none;"></div>
+
+              <!-- Modal Window -->
+              <div class="modal" id="modal" style="display: none;">
+                <h3>Select a Template</h3>
+                <button class="template-button" data-template="template1">
+                  <img src="https://media-public.canva.com/43xhE/MAEnjk43xhE/1/s2.jpg" alt="Template 1"
+                    style="width: 100px; height: auto;" />
+                  Template 1
+                </button>
+                <button class="template-button" data-template="template2">
+                  <img
+                    src="https://imgs.search.brave.com/4Z8UwleTgBUF3c--TSyt2qMWS2tCxfgem7D6IREvt48/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9h/aS10ZWNobm9sb2d5/LW1pY3JvY2hpcC1i/YWNrZ3JvdW5kLWRp/Z2l0YWwtdHJhbnNm/b3JtYXRpb24tY29u/Y2VwdF81Mzg3Ni0x/MjQ2NjkuanBnP3Nl/bXQ9YWlzX2h5YnJp/ZA"
+                    alt="Template 2" style="width: 100px; height: auto;" />
+                  Template 2
+                </button>
+              </div>
+            </aside>
+          </div>
+          <div class="col-md-10">
+            <form action="/generate" method="post" enctype="multipart/form-data" id="video-form">
+              <main class="main-content">
+                <div id="tab1" class="tab-content">
+                  <div id="editor1" class="editor">
+                    <div id="post-container1">
+                      <input type="hidden" id="avatardatax" name="avatardatax[]" value="506">
+                      <input type="hidden" id="avatardatay" name="avatardatay[]" value="4">
+                      <input type="hidden" id="avatarheight" name="avatarheight[]" value="257px">
+                      <input type="hidden" id="avatarwidth" name="avatarwidth[]" value="313px">
+                    </div>
+                  </div>
+                  <input class="form-control" type="hidden" name="videoid" value="{{videoid}}" required>
+                  <div class="row">
+                    <div class="col-md-12">
+                      <br>
+                      <textarea class="form-control" placeholder="Enter Dailogue script here" type="text" name="texts[]"
+                        required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                      <select class="form-control" name="existing_avatars[]" style="display: none;">
+                        <option value="maki1.mp4">Avatar Maki 1</option>
+                        <option value="maki2.mp4">Avatar Maki 2</option>
+                        <option value="maki3.mp4">Avatar Maki 3</option>
+                        <option value="maki4.mp4">Avatar Maki 4</option>
+                        <option value="avatar2.webm">Avatar Maki transparent</option>
+                      </select>
+                    </div>
+                  </div>
+                  <input class="form-control" type="hidden"
+                    value="http://213.180.0.37:47936/static/slides/{{videoid}}/tab1.png" name="existing_backgrounds[]">
+                </div>
+              </main>
+              <br>
+              <button class="form-control" id="GenerateVideo" type="submit">Generate Video</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- model -->
+    <style>
+      /* Modal styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      #mediaGallery img {
+        max-width: 100px;
+        cursor: pointer;
+      }
+    </style>
+    <!-- The Modal -->
+    <div id="mediaGalleryModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="gallery-section">
+          <h3>Media Gallery</h3>
+          <div id="mediaGallery">
+            <img src="gallaryimages/1.jpg" alt="">
+            <img src="gallaryimages/10.jpg" alt="">
+            <img src="gallaryimages/4.jpg" alt="">
+            <img src="gallaryimages/9.jpg" alt="">
+            <img src="gallaryimages/3.jpg" alt="">
+            <img src="gallaryimages/5.jpg" alt="">
+            <img src="gallaryimages/8.jpg" alt="">
+          </div>
+        </div>
+        <div class="upload-section">
+          <h3>Upload Image</h3>
+          <input type="file" id="uploadImage" />
+        </div>
+        <button id="selectImage">Select Image</button>
+      </div>
+    </div>
+    <div id="mediaGalleryModalavatar" class="modal">
+      <div class="modal-content">
+        <span class="closeavatar">&times;</span>
+        <h2>Select or Upload an Image</h2>
+        <div class="gallery-section">
+          <h3>Media Gallery</h3>
+          <div id="mediaGalleryavatar">
+            <div id="mediaGallery">
+              <img src="gallaryavatar/avatar22.gif" width="200px" height="200px" alt="">
+            </div>
+          </div>
+          <div class="upload-section">
+            <h3>Upload Image</h3>
+            <input type="file" id="uploadImage" />
+          </div>
+          <button id="selectImage">Select Image</button>
+        </div>
+      </div>
+      <!-- Footer -->
+      <footer id="footer" class="footer position-relative">
+        <!-- Footer content -->
+      </footer>
+
+      <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i
+          class="bi bi-arrow-up-short"></i></a>
+
+      <!-- JavaScript -->
+      <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+      <script src="js/interact.min.js"></script>
+      <script src="js/main.js"></script>
+      <script>
+        function handleImageUpload(event) {
+          const file = event.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const image = `<div class="component resizable" id="${Date.now()}"><img src="${e.target.result}" alt="User Uploaded Image"></div>`;
+              document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", image);
+            }
+            reader.readAsDataURL(file);
+          }
+        }
+        function handleImageUploadAvatar(event) {
+          const file = event.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const image = `<div class="component resizable avatar" id="${Date.now()}"><img src="${e.target.result}" alt="User Uploaded Image"></div>`;
+              // alert(currentPostContainerId);
+              document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", image);
+            }
+            reader.readAsDataURL(file);
+          }
+        }
+        function deleteSelected() {
+          const selected = document.querySelector('.component.selected');
+          if (selected) {
+            selected.remove();
+          } else {
+            alert('No component selected for deletion.');
+          }
+        }
+
+
+        var currentPostContainerId = 'post-container1';
+        function makeElementDraggable(element) {
+          let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+          element.onmousedown = dragMouseDown;
+
+          function dragMouseDown(e) {
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+          }
+
+          function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+          }
+
+          function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+          }
+        }
+
+        function initializeTemplateContent(tabCount) {
+          const templateContent = document.getElementById(`template-content-${tabCount}`);
+          if (templateContent) {
+            makeElementDraggable(templateContent);
+            templateContent.style.position = 'absolute';
+            templateContent.style.cursor = 'move';
+            templateContent.style.resize = 'both';
+            templateContent.style.overflow = 'auto';
+            templateContent.style.minWidth = '50px';
+            templateContent.style.minHeight = '20px';
+          }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+          const sidebar = document.querySelector('.sidebar');
+          const mainContent = document.querySelector('.main-content');
+          const addButton = document.getElementById('add-tab-button');
+          const modal = document.getElementById('modal');
+          const overlay = document.getElementById('overlay');
+          let tabCount = 1;
+
+          function switchTab(targetId) {
+            const contents = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-button');
+
+            contents.forEach(content => content.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(targetId).classList.add('active');
+            document.querySelector(`[data-target="${targetId}"]`).classList.add('active');
+
+            currentPostContainerId = `post-container${targetId.replace('tab', '')}`;
+          }
+          function addTabButtonListeners() {
+            document.querySelectorAll('.tab-button').forEach(button => {
+              button.addEventListener('click', function () {
+                switchTab(this.getAttribute('data-target'));
+              });
+            });
+          }
+
+          addTabButtonListeners();
+
+          addButton.addEventListener('click', function () {
+            
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+
+            
+            setTimeout(() => {
+              overlay.style.opacity = 1;
+              modal.style.opacity = 1;
+            }, 50); 
+          });
+          document.querySelectorAll('.template-button').forEach((button) => {
+            button.addEventListener('click', () => {
+              tabCount++;
+              const newTabId = `tab${tabCount}`;
+              const newTabLabel = `Slide ${tabCount}`;
+
+              const newButton = document.createElement('button');
+              newButton.className = 'tab-button btnme';
+              newButton.setAttribute('data-target', newTabId);
+              newButton.textContent = newTabLabel;
+              sidebar.insertBefore(newButton, addButton);
+
+              const newContent = document.createElement('div');
+              newContent.id = newTabId;
+              newContent.className = 'tab-content';
+
+              let templateContent = '';
+              if (button.dataset.template === 'template1') {
+                templateContent = `
+          <div id="editor${tabCount}" class="editor" style="
+              background-image: url('https://media-public.canva.com/43xhE/MAEnjk43xhE/1/s2.jpg');
+              background-size: cover;
+              position: relative;
+              width: 100%;
+              height: 500px;">
+              <div id="post-container${tabCount}" class="post-container">
+                  <div class="component resizable" 
+                      id="template-content-${tabCount}" 
+                      contenteditable="true" 
+                      style="position: absolute; top: 50px; left: 50px;">
+                      Click to edit this text
+                  </div>
+              
+              <div id="post-container${tabCount}" class="post-container">
+                <div class="component resizable" id="template-content-${tabCount}" 
+                      contenteditable="true" 
+                      style="position: absolute; cursor: move;">
+                      </div>
+                  <input type="hidden" id="avatardatax" name="avatardatax[]" value="506">
+                  <input type="hidden" id="avatardatay" name="avatardatay[]" value="4">
+                  <input type="hidden" id="avatarheight" name="avatarheight[]" value="257px">
+                  <input type="hidden" id="avatarwidth" name="avatarwidth[]" value="313px">
+              </div>
+          </div>
+          <div class="row">
+              <div class="col-md-6"><br>
+                  <textarea class="form-control" type="text" placeholder="Enter Dialogue script here" name="texts[]" required></textarea>
+              </div>
+              <div class="col-md-6">
+                  <select class="form-control" name="existing_avatars[]" style="display:none;">
+                      <option value="maki1.mp4">Avatar maki1</option>
+                      <option value="maki2.mp4">Avatar maki2.mp4</option>
+                      <option value="maki3.mp4">Avatar maki3.mp4</option>
+                      <option value="maki4.mp4">Avatar maki4.mp4</option>
+                  </select>
+              </div>
+              <input class="form-control" type="hidden" value="http://213.180.0.37:47936/static/slides/{{videoid}}/tab${tabCount}.png" name="existing_backgrounds[]">
+          </div>
+      `;
+              } else if (button.dataset.template === 'template2') {
+                templateContent = `
+          <div id="editor${tabCount}" class="editor" style="
+              background-image: url('https://example.com/template2.jpg');
+              background-size: cover;
+              position: relative;
+              width: 100%;
+              height: 500px;">
+              <!-- Content specific to Template 2 -->
+              <div id="post-container${tabCount}">
+                  <!-- Additional elements for Template 2 -->
+                  <input type="hidden" id="avatardatax" name="avatardatax[]" value="506">
+                  <input type="hidden" id="avatardatay" name="avatardatay[]" value="4">
+                  <input type="hidden" id="avatarheight" name="avatarheight[]" value="257px">
+                  <input type="hidden" id="avatarwidth" name="avatarwidth[]" value="313px">
+              </div>
+          </div>
+          <div class="row">
+              <div class="col-md-6"><br>
+                  <textarea class="form-control" type="text" placeholder="Enter Dialogue script here" name="texts[]" required></textarea>
+              </div>
+              <div class="col-md-6">
+                  <select class="form-control" name="existing_avatars[]" style="display:none;">
+                      <option value="maki1.mp4">Avatar maki1</option>
+                      <option value="maki2.mp4">Avatar maki2.mp4</option>
+                      <option value="maki3.mp4">Avatar maki3.mp4</option>
+                      <option value="maki4.mp4">Avatar maki4.mp4</option>
+                  </select>
+              </div>
+              <input class="form-control" type="hidden" value="http://213.180.0.37:47936/static/slides/{{videoid}}/tab${tabCount}.png" name="existing_backgrounds[]">
+          </div>
+      `;
+              }
+
+              newContent.innerHTML = templateContent;
+
+              // Append new content to mainContent
+              mainContent.appendChild(newContent);
+              initializeTemplateContent(tabCount);
+
+              // Add event listeners to the new tab button
+              addTabButtonListeners();
+
+              // Switch to the new tab
+              switchTab(newTabId);
+
+              // Close the modal
+              setTimeout(() => {
+                modal.style.display = 'none';
+                overlay.style.display = 'none';
+              }, 300);
+            });
+          });
+
+          switchTab('tab1');
+
+          window.addHeading = function () {
+            let id = Date.now();
+            let heading = `<div class="component resizable" id="${id}" contenteditable="true" style="font-size: 24px;">Heading</div>`;
+            document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", heading);
+          }
+
+          window.addParagraph = function () {
+            let id = Date.now();
+            let paragraph = `<div class="component resizable" id="${id}" contenteditable="true">Paragraph</div>`;
+            document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", paragraph);
+          }
+
+          window.addImage2 = function () {
+            let id = Date.now();
+            let image = `<div class="component resizable" id="${id}"><img src="https://via.placeholder.com/150" alt="Placeholder"></div>`;
+            document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", image);
+          }
+          window.addImage = function () {
+            document.getElementById('image-upload').click(); // Trigger file input click
+          }
+
+
+          window.toggleBold = function () {
+            document.querySelectorAll('.component.selected').forEach(el => {
+              el.style.fontWeight = el.style.fontWeight === 'bold' ? 'normal' : 'bold';
+            });
+          }
+
+          window.toggleItalic = function () {
+            document.querySelectorAll('.component.selected').forEach(el => {
+              el.style.fontStyle = el.style.fontStyle === 'italic' ? 'normal' : 'italic';
+            });
+          }
+
+          window.toggleUnderline = function () {
+            document.querySelectorAll('.component.selected').forEach(el => {
+              el.style.textDecoration = el.style.textDecoration === 'underline' ? 'none' : 'underline';
+            });
+          }
+
+          window.bringForward = function () {
+            let selected = document.querySelector('.component.selected');
+            if (selected) {
+              selected.style.zIndex = parseInt(selected.style.zIndex || 1) + 1;
+            }
+          }
+
+          window.sendBackward = function () {
+            let selected = document.querySelector('.component.selected');
+            if (selected) {
+              selected.style.zIndex = parseInt(selected.style.zIndex || 1) - 1;
+            }
+          }
+
+          // Event listeners for color and text size inputs
+          document.getElementById('element-bgcolor').addEventListener('input', function () {
+            document.querySelectorAll('.component.selected').forEach(el => {
+              el.style.backgroundColor = this.value;
+            });
+          });
+
+          document.getElementById('element-textcolor').addEventListener('input', function () {
+            document.querySelectorAll('.component.selected').forEach(el => {
+              el.style.color = this.value;
+            });
+          });
+
+          document.getElementById('element-textsize').addEventListener('input', function () {
+            document.querySelectorAll('.component.selected').forEach(el => {
+              el.style.fontSize = this.value + 'px';
+            });
+          });
+
+          // Make components selectable
+          document.addEventListener('click', function (event) {
+            if (event.target.classList.contains('component')) {
+              document.querySelectorAll('.component').forEach(el => el.classList.remove('selected'));
+              event.target.classList.add('selected');
+            }
+          });
+        });
+
+        // interact('.resizable')
+        //     .draggable({
+        //         onmove: dragMoveListener
+        //     })
+        //     .resizable({
+        //         edges: { left: true, right: true, bottom: true, top: true }
+        //     })
+        //     .on('resizemove', function (event) {
+        //         let target = event.target;
+        //         let x = (parseFloat(target.getAttribute('data-x')) || 0);
+        //         let y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+        //         target.style.width = event.rect.width + 'px';
+        //         target.style.height = event.rect.height + 'px';
+
+        //         x += event.deltaRect.left;
+        //         y += event.deltaRect.top;
+
+        //         target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+
+        //         target.setAttribute('data-x', x);
+        //         target.setAttribute('data-y', y);
+        //     });
+
+        // function dragMoveListener(event) {
+        //     let target = event.target;
+        //     let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        //     let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+        //     target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+        //     target.setAttribute('data-x', x);
+        //     target.setAttribute('data-y', y);
+        // }
+        interact('.resizable')
+          .draggable({
+            onmove: dragMoveListener
+          })
+          .resizable({
+            edges: { left: true, right: true, bottom: true, top: true }
+          })
+          .on('resizemove', function (event) {
+            let target = event.target;
+            let x = (parseFloat(target.getAttribute('data-x')) || 0);
+            let y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+            target.style.width = event.rect.width + 'px';
+            target.style.height = event.rect.height + 'px';
+
+            x += event.deltaRect.left;
+            y += event.deltaRect.top;
+
+            target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+
+            if (target.classList.contains('avatar')) {
+              document.getElementById('avatardatax').value = x;
+              document.getElementById('avatardatay').value = y;
+              document.getElementById('avatarheight').value = target.style.height;
+              document.getElementById('avatarwidth').value = target.style.width;
+            }
+          });
+
+        function dragMoveListener(event) {
+          let target = event.target;
+          let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+          let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+          target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+          target.setAttribute('data-x', x);
+          target.setAttribute('data-y', y);
+
+          if (target.classList.contains('avatar')) {
+            document.getElementById(currentPostContainerId).querySelector('#avatardatax').value = x;
+            document.getElementById(currentPostContainerId).querySelector('#avatardatay').value = y;
+            document.getElementById(currentPostContainerId).querySelector('#avatarheight').value = target.style.height;
+            document.getElementById(currentPostContainerId).querySelector('#avatarwidth').value = target.style.width;
+          }
+        }
+
+        window.saveAllImages2 = function () {
+          const images = [];
+          const tabNames = [];
+
+          const tabs = document.querySelectorAll('.tab-content');
+          let index = 0;
+          let index2 = 1;
+          document.querySelectorAll('.avatar').forEach(function (element) {
+            element.style.display = 'none'; // Or 'inline', 'flex', etc., depending on your layout
+          });
+          function captureNextTab() {
+            if (index < tabs.length) {
+              const tabContent = tabs[index];
+              const tabId = tabContent.id;
+              const tabName = tabId; // e.g., "tab1", "tab2", etc.
+              document.querySelector(`.tab-button[data-target="${tabId}"]`).classList.add('active');
+              tabContent.classList.add('active');
+              // Capture the image of the current tab
+              const edt = "editor" + index2;
+              const postContainer = document.getElementById(edt);
+              html2canvas(postContainer).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                images.push(imgData);
+                tabNames.push(tabName);
+                // Deactivate the current tab
+                tabContent.classList.remove('active');
+                document.querySelector(`.tab-button[data-target="${tabId}"]`).classList.remove('active');
+                index++;
+                index2++;
+                captureNextTab();
+              }).catch(error => {
+                console.error('Error capturing image:', error);
+                index++;
+                captureNextTab();
+              });
+            } else {
+              fetch('/save', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  images: images,
+                  tabNames: tabNames,
+                  videoid: '{{ videoid }}'  // Pass your video ID if necessary
+                })
+              }).then(response => response.json())
+                .then(data => {
+                  console.log(data);
+                  document.querySelectorAll('.avatar').forEach(function (element) {
+                    element.style.display = 'block'; // Or 'inline', 'flex', etc., depending on your layout
+                  });
+                  alert("Saved, press Generate Video now.");
+                })
+                .catch(error => console.error('Error:', error));
+            }
+          }
+          captureNextTab(); // Start capturing images
+        }
+
+      </script>
+      <!-- model script -->
+      <script>
+        // Open the modal
+
+        document.getElementById('openGalleryAvatar').onclick = function () {
+          document.getElementById('mediaGalleryModalavatar').style.display = 'block';
+        };
+        document.getElementById('openGallery').onclick = function () {
+          document.getElementById('mediaGalleryModal').style.display = 'block';
+        };
+        // Close the modal
+        document.querySelector('.close').onclick = function () {
+          document.getElementById('mediaGalleryModal').style.display = 'none';
+        };
+        document.querySelector('.closeavatar').onclick = function () {
+          document.getElementById('mediaGalleryModalavatar').style.display = 'none';
+        };
+        // Add event listener for image selection
+        document.getElementById('mediaGallery').addEventListener('click', function (e) {
+          if (e.target.tagName === 'IMG') {
+            const selectedImage = e.target.src;
+            const image = `<div class="component resizable" id="${Date.now()}"><img src="${e.target.src}" alt="User Uploaded Image"></div>`;
+            document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", image);
+            document.getElementById('mediaGalleryModal').style.display = 'none';
+          }
+        });
+        // Add event listener for image avatar selection
+        document.getElementById('mediaGalleryavatar').addEventListener('click', function (e) {
+          if (e.target.tagName === 'IMG') {
+            const selectedImage = e.target.src;
+            const image = `<div class="component resizable avatar" id="${Date.now()}"><img src="${e.target.src}" alt="User Uploaded Image"></div>`;
+            document.getElementById(currentPostContainerId).insertAdjacentHTML("beforeend", image);
+            document.getElementById('mediaGalleryModalavatar').style.display = 'none';
+          }
+        });
+        // Handle image upload
+        document.getElementById('uploadImage').addEventListener('change', function (event) {
+          const file = event.target.files[0];
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            const newImage = document.createElement('img');
+            newImage.src = e.target.result;
+            document.getElementById('mediaGallery').appendChild(newImage);
+          };
+
+          if (file) {
+            reader.readAsDataURL(file);
+          }
+        });
+
+        // Handle the "Select Image" button click
+        document.getElementById('selectImage').onclick = function () {
+          const activeImage = document.querySelector('#mediaGallery img.active');
+          if (activeImage) {
+            const selectedImageSrc = activeImage.src;
+            // Add this image to the current tab or element as needed
+            console.log('Image selected:', selectedImageSrc);
+          }
+        };
+
+      </script>
+      <script>
+        document.getElementById('saveProgressBtn').onclick = function () {
+          const content = document.getElementById('{{ videoid }}').innerHTML;
+          // alert(content);
+          fetch('/saveprogress', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content: content, videoid: '{{ videoid }}' })
+          })
+            .then(response => response.json())
+            .then(data => {
+              console.log('Save successful:', data);
+            })
+            .catch(error => {
+              console.error('Error saving progress:', error);
+            });
+        };
+      </script>
+  </body>
+
+  </html>
